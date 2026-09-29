@@ -1,0 +1,43 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 10
+      Plane Cell Count: 40
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Lidar
+      Enabled: true
+      Topic:
+        Value: /lidar_points
+        Reliability Policy: Best Effort
+        Depth: 1
+      Size (m): 0.05
+      Style: Points
+      Size (Pixels): 2
+      Color Transformer: Intensity
+      Decay Time: 0
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Obstacles
+      Enabled: true
+      Topic:
+        Value: /metro/markers
+  Global Options:
+    Fixed Frame: hesai_lidar
+    Background Color: 30; 30; 30
+    Frame Rate: 30
+  Views:
+    Current:
+      Class: rviz_default_plugins/ThirdPersonFollower
+      Distance: 60
+      Focal Point:
+        X: 0
+        Y: -40
+        Z: 0
+      Pitch: 0.5
+      Yaw: -1.5708
+      Target Frame: <Fixed Frame>

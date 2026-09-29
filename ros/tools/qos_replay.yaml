@@ -1,0 +1,12 @@
+# ros2 bag play --qos-profile-overrides-path: a deep reliable queue so that an offline replay loses
+# no frame (the node's record then covers every message of the bag). Live use keeps the driver's QoS.
+/lidar_points:
+  history: keep_last
+  depth: 200
+  reliability: reliable
+  durability: volatile
+/sensing/lidar/hesai128/pointcloud:
+  history: keep_last
+  depth: 200
+  reliability: reliable
+  durability: volatile
