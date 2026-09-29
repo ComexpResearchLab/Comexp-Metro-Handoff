@@ -7,7 +7,7 @@ It:
      uses, so build and run agree),
   2. POSTs the fingerprint plus the delivery token to the activation server,
   3. receives the engine, encrypted and bound to THIS machine, and writes the activation package
-     (manifest.json + engine.enc) into the image at METRO_ACTIVATION_DIR.
+     (manifest.json + license.json) into the image; the encrypted engine (engine.enc) ships in the repo.
 
 The plaintext engine is never sent and never written: the server ships ciphertext, and only the
 run-time loader (in RAM) ever holds the decrypted .so.
@@ -18,7 +18,6 @@ fallback instructions, so the customer is never left with a half-built image.
 Only the Python standard library is used here (urllib), so the build stage needs no pip step for
 activation itself. (The run-time loader needs `cryptography`; the Dockerfile installs it.)
 """
-import base64
 import json
 import os
 import sys
@@ -37,7 +36,7 @@ def _die(msg, fp=None, code=2):
     out = ['', line, 'METRO ACTIVATION FAILED DURING BUILD', line, msg, '']
     if fp is not None:
         out.append('Send us EXACTLY this fingerprint and we will mail back an activation file to')
-        out.append(f'drop into {DEFAULT_DIR} (manifest.json + engine.enc), then rebuild:')
+        out.append(f'drop into {DEFAULT_DIR} (manifest.json + license.json), then rebuild:')
         out.append('')
         out.append(json.dumps({'fingerprint': fp['unique'], 'context': fp['context'],
                                'machine_id': fingerprint.machine_id(fp['unique'])}, indent=2))
@@ -94,15 +93,15 @@ def main():
         _die(f'The activation server returned an error: {payload.get("error", "unknown")}', fp)
 
     manifest = payload.get('manifest')
-    engine_b64 = payload.get('engine_b64')
-    if not manifest or not engine_b64:
-        _die('The activation server response was missing the manifest or the engine payload.', fp)
+    if not manifest:
+        _die('The activation server response was missing the manifest.', fp)
 
+    # The encrypted engine (engine.enc) is NOT fetched -- it ships committed in this repo and is
+    # COPY'd into the image. Activation returns only the machine-bound key wraps (manifest) and the
+    # signed, expiring licence, which the loader uses to unlock the committed engine at run time.
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, 'manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=2)
-    with open(os.path.join(out_dir, 'engine.enc'), 'wb') as f:
-        f.write(base64.b64decode(engine_b64))
 
     # In-engine licence (defence in depth): the `licensed` engine verifies it before running.
     # The server includes it only when its signing key is configured; a null licence is fine for
@@ -121,7 +120,7 @@ def main():
     sys.stderr.write(f'metro activation: OK -- engine bound to machine_id={mid}, '
                      f'{n_wraps} wrap(s), engine_build_id={manifest.get("engine_build_id")}'
                      f'{" [WEAK: only one unique part]" if weak else ""}\n')
-    sys.stderr.write(f'metro activation: wrote {out_dir}/manifest.json and {out_dir}/engine.enc\n')
+    sys.stderr.write(f'metro activation: wrote {out_dir}/manifest.json (+ license.json); engine.enc is committed in the image\n')
 
 
 if __name__ == '__main__':

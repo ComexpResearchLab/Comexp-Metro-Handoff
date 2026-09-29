@@ -91,7 +91,13 @@ def resolve_engine(activation_dir=None):
     """
     activation_dir = activation_dir or os.environ.get('METRO_ACTIVATION_DIR') or DEFAULT_DIR
     manifest_path = os.path.join(activation_dir, 'manifest.json')
-    engine_path = os.path.join(activation_dir, 'engine.enc')
+    # The encrypted engine ships committed in the delivery repo (COPY'd into the image), not fetched:
+    # its git commit fixes the binary at delivery time. Activation only returns the machine-bound key
+    # (manifest.json). METRO_ENGINE_ENC overrides the baked path; fall back to the old in-package
+    # location so an older, fetch-style package still opens.
+    engine_path = os.environ.get('METRO_ENGINE_ENC') or '/opt/metro/engine.enc'
+    if not os.path.exists(engine_path):
+        engine_path = os.path.join(activation_dir, 'engine.enc')
 
     fp, overridden = fingerprint.collect_effective()
     unique = fp['unique']
